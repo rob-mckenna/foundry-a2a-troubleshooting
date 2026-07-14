@@ -41,7 +41,7 @@ Using Entra authentication with either agent identity or project managed identit
 
 ### Error #2: Page Not Found (404) on Consent
 
-**Most Common Cause:** Authentication/Authorization token issues or endpoint not being properly registered.
+**Most Common Cause:** Authentication/authorization issues or endpoint/configuration mismatch.
 
 **Likely Issues:**
 - **Missing or invalid authentication headers**: The consent redirect doesn't have proper authentication
@@ -51,9 +51,9 @@ Using Entra authentication with either agent identity or project managed identit
 
 **Solution Steps:**
 1. **Verify RBAC permissions:**
-   - If using **Project Managed Identity**: Ensure it has `Cognitive Services User` role on the sub-agent's project
-   - If using **Agent Identity**: Ensure the agent identity has `Cognitive Services User` role
-   - Check if you have `Contributor` or `Owner` role on both projects
+   - Ensure the calling identity has `Foundry Agent Consumer` (or higher) on the target Foundry project
+   - For setup operations, ensure project-level authoring permissions are available
+   - Verify assignment for the actual caller identity (agent identity, managed identity, or service principal)
 
 2. **Check endpoint status:**
    - Verify the sub-agent's A2A endpoint is deployed and accessible
@@ -80,7 +80,7 @@ Using Entra authentication with either agent identity or project managed identit
 
 ### Authentication & Authorization
 - [ ] **Managed Identity** has been enabled on the sub-agent
-- [ ] **RBAC role assigned**: `Cognitive Services User` on the sub-agent's project
+- [ ] **RBAC role assigned**: `Foundry Agent Consumer` (or higher) for the caller on the target project
 - [ ] **Both agents** in the same or trusted Azure subscriptions
 - [ ] **Service Principal permissions** verified with `az role assignment list` command
 - [ ] **Token not expired** - test with fresh authentication
@@ -123,7 +123,7 @@ Write-Host "Card path should be: agentCard/v1.0"
 
 ```bash
 # Get an auth token
-$token = az account get-access-token --query accessToken -o tsv
+$token = az account get-access-token --resource https://ai.azure.com --query accessToken -o tsv
 
 # Test if endpoint responds
 curl -H "Authorization: Bearer $token" \
@@ -138,7 +138,7 @@ curl -H "Authorization: Bearer $token" \
 # Check who has access to the sub-agent's project
 az role assignment list --scope /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{account}
 
-# Ensure the managed identity appears with a proper role (Contributor or Cognitive Services User)
+# Ensure the caller identity appears with Foundry Agent Consumer (or higher)
 ```
 
 ### Step 4: Validate Agent Card Structure
@@ -146,7 +146,7 @@ az role assignment list --scope /subscriptions/{sub}/resourceGroups/{rg}/provide
 ```bash
 # Fetch the agent card to verify it exists at the expected path
 $agentCard = Invoke-RestMethod `
-  -Uri "https://{account}.services.ai.azure.com/api/projects/{project}/agents/{agent}/agentCard/v1.0" `
+   -Uri "https://{account}.services.ai.azure.com/api/projects/{project}/agents/{agent}/endpoint/protocols/a2a/agentCard/v1.0" `
   -Headers @{ Authorization = "Bearer $token" }
 
 $agentCard | ConvertTo-Json
@@ -169,14 +169,14 @@ If the consent page 404s:
 - **Cause**: Authentication token or endpoint not ready
 - **Workaround**:
   - Manually verify endpoint with authenticated request first
-  - Ensure service principal has explicit `Cognitive Services User` role
+   - Ensure the caller identity has `Foundry Agent Consumer` (or higher)
   - Try using project managed identity instead of agent identity (or vice versa)
 
 ### Issue: Card Path Validation Error
 If card path error persists despite correct URLs:
 - **Cause**: Server URL and card path not on same host/project/agent
 - **Workaround**:
-  - Use **absolute URL** instead of relative path for card path
+   - For SDK usage, pass `agentCard/v1.0`; for connection metadata use `/agentCard/v1.0`
   - Verify URL format matches: `https://{account}.services.ai.azure.com/api/projects/{project}/agents/{agent}`
   - Check no URL parameters are being added during serialization
 
@@ -190,7 +190,6 @@ If card path error persists despite correct URLs:
    ```
    *.services.ai.azure.com (HTTPS port 443)
    *.api.cognitive.microsoft.com (HTTPS port 443)
-   *.cognitiveservices.azure.com (HTTPS port 443)
    ```
 
 2. **Check NSG rules (if applicable):**

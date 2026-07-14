@@ -21,15 +21,15 @@ param(
 function Write-Section {
     param([string]$Title)
     Write-Host "`n" -ForegroundColor White
-    Write-Host "=" * 80 -ForegroundColor Cyan
+    Write-Host ("=" * 80) -ForegroundColor Cyan
     Write-Host $Title -ForegroundColor Cyan
-    Write-Host "=" * 80 -ForegroundColor Cyan
+    Write-Host ("=" * 80) -ForegroundColor Cyan
 }
 
 function Write-Subsection {
     param([string]$Title)
     Write-Host "`n$Title" -ForegroundColor Yellow
-    Write-Host "-" * 40 -ForegroundColor Yellow
+    Write-Host ("-" * 40) -ForegroundColor Yellow
 }
 
 function Test-URLValidity {
@@ -90,7 +90,7 @@ function Test-A2AServerURL {
 }
 
 function Get-AzureToken {
-    param([string]$Resource = "https://cognitiveservices.azure.com/")
+    param([string]$Resource = "https://ai.azure.com")
     
     try {
         $token = az account get-access-token --resource $Resource --query accessToken -o tsv 2>$null
@@ -141,7 +141,11 @@ function Test-EndpointAccessibility {
             $result.Response = $response.Content | ConvertFrom-Json
         }
     } catch {
-        $statusCode = $_.Exception.Response.StatusCode.Value
+        $statusCode = $null
+        if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+            $statusCode = [int]$_.Exception.Response.StatusCode
+        }
+
         $result.StatusCode = $statusCode
         $result.Accessible = $false
         $result.Error = $_.Exception.Message
@@ -152,6 +156,8 @@ function Test-EndpointAccessibility {
             $result.Error = "401 Unauthorized - Authentication token invalid or expired"
         } elseif ($statusCode -eq 403) {
             $result.Error = "403 Forbidden - Check RBAC permissions"
+        } elseif (-not $statusCode) {
+            $result.Error = "Network/TLS/DNS error before HTTP response - verify connectivity and DNS resolution"
         }
     }
     
@@ -237,7 +243,7 @@ function Run-Diagnostics {
     # Construct URLs
     $baseUrl = "https://$AccountName.services.ai.azure.com/api/projects/$ProjectId/agents"
     $a2aEndpointUrl = "$baseUrl/$SubAgentId/endpoint/protocols/a2a"
-    $agentCardUrl = "$baseUrl/$SubAgentId/agentCard/v1.0"
+    $agentCardUrl = "$baseUrl/$SubAgentId/endpoint/protocols/a2a/agentCard/v1.0"
     
     Write-Section "FOUNDRY A2A DIAGNOSTIC REPORT"
     
@@ -285,7 +291,7 @@ function Run-Diagnostics {
     $tokenResult = Get-AzureToken
     if ($tokenResult.Success) {
         Write-Host "✓ Successfully acquired Azure authentication token" -ForegroundColor Green
-        Write-Host "  Token acquired for resource: https://cognitiveservices.azure.com/"
+        Write-Host "  Token acquired for resource: https://ai.azure.com"
     } else {
         Write-Host "✗ Failed to acquire token" -ForegroundColor Red
         Write-Host "  Error: $($tokenResult.Error)"
@@ -325,8 +331,13 @@ function Run-Diagnostics {
             Write-Host "    - Service principal lacks permissions"
         } elseif ($endpointTest.StatusCode -eq 403) {
             Write-Host "  Possible causes:" -ForegroundColor Yellow
-            Write-Host "    - RBAC role not assigned to managed identity"
-            Write-Host "    - Missing 'Cognitive Services User' role"
+            Write-Host "    - Caller role missing on target Foundry project"
+            Write-Host "    - Assign 'Foundry Agent Consumer' (or higher)"
+        } elseif (-not $endpointTest.StatusCode) {
+            Write-Host "  Possible causes:" -ForegroundColor Yellow
+            Write-Host "    - DNS resolution issue"
+            Write-Host "    - Corporate firewall/TLS interception"
+            Write-Host "    - Proxy blocking outbound HTTPS"
         }
     }
     
@@ -338,9 +349,9 @@ function Run-Diagnostics {
     Write-Host "  az role assignment list --scope <project-scope> --output table"
     Write-Host ""
     Write-Host "Look for these roles:" -ForegroundColor Cyan
-    Write-Host "  ✓ Cognitive Services User"
-    Write-Host "  ✓ Contributor"
-    Write-Host "  ✓ Owner"
+    Write-Host "  ✓ Foundry Agent Consumer"
+    Write-Host "  ✓ Foundry User"
+    Write-Host "  ✓ Foundry Owner"
     
     # 7. Recommendations
     Write-Subsection "7. DIAGNOSTIC SUMMARY & RECOMMENDATIONS"
@@ -385,9 +396,9 @@ function Run-Diagnostics {
     }
     
     Write-Host "`n" -ForegroundColor White
-    Write-Host "=" * 80 -ForegroundColor Cyan
+    Write-Host ("=" * 80) -ForegroundColor Cyan
     Write-Host "For detailed troubleshooting guidance, see: A2A_TROUBLESHOOTING_GUIDE.md" -ForegroundColor Cyan
-    Write-Host "=" * 80 -ForegroundColor Cyan
+    Write-Host ("=" * 80) -ForegroundColor Cyan
     Write-Host ""
 }
 

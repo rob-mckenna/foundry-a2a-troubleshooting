@@ -6,7 +6,6 @@ Helps troubleshoot Agent-to-Agent communication issues in Microsoft Foundry
 
 import re
 import sys
-import json
 from urllib.parse import urlparse
 from typing import Tuple, List, Dict
 
@@ -73,12 +72,15 @@ class A2AValidator:
         # Common valid patterns
         valid_patterns = [
             r'^agentCard/v1\.0$',
+            r'^/agentCard/v1\.0$',
+            r'^agentCard/v0\.3$',
+            r'^/agentCard/v0\.3$',
             r'^agentCard$',
             r'^card$',
         ]
         
         if not any(re.match(pattern, card_path) for pattern in valid_patterns):
-            self.warnings.append(f"Card path '{card_path}' doesn't match common patterns (agentCard/v1.0, agentCard, card)")
+            self.warnings.append(f"Card path '{card_path}' doesn't match common patterns (agentCard/v1.0 or /agentCard/v1.0)")
         
         return True
     
@@ -90,17 +92,22 @@ class A2AValidator:
         if not server_valid:
             return False
         
-        # Verify tool URL contains the same host/project/agent
-        if server_account not in tool_url:
-            self.errors.append(f"Tool URL account '{tool_url}' doesn't match server account '{server_account}'")
+        tool_account, tool_project, tool_agent, tool_valid = self.validate_a2a_server_url(tool_url)
+        if not tool_valid:
+            self.errors.append("Tool URL must match A2A endpoint format and point to the same target")
+            return False
+
+        # Verify tool URL has exactly the same host/project/agent
+        if tool_account != server_account:
+            self.errors.append(f"Tool URL account '{tool_account}' doesn't match server account '{server_account}'")
             return False
         
-        if server_project not in tool_url:
-            self.errors.append(f"Tool URL project '{tool_url}' doesn't match server project '{server_project}'")
+        if tool_project != server_project:
+            self.errors.append(f"Tool URL project '{tool_project}' doesn't match server project '{server_project}'")
             return False
         
-        if server_agent not in tool_url:
-            self.errors.append(f"Tool URL agent '{tool_url}' doesn't match server agent '{server_agent}'")
+        if tool_agent != server_agent:
+            self.errors.append(f"Tool URL agent '{tool_agent}' doesn't match server agent '{server_agent}'")
             return False
         
         self.info.append(f"✓ URL consistency verified - Account: {server_account}, Project: {server_project}, Agent: {server_agent}")
@@ -108,7 +115,7 @@ class A2AValidator:
     
     def validate_authentication_config(self, auth_type: str, managed_identity_type: str = "") -> bool:
         """Validate authentication configuration"""
-        valid_auth_types = ["Entra", "Azure AD", "Managed Identity", "Service Principal"]
+        valid_auth_types = ["Entra", "Azure AD", "Managed Identity", "Service Principal", "AgenticIdentity"]
         
         if auth_type not in valid_auth_types:
             self.errors.append(f"Invalid auth type '{auth_type}'. Must be one of: {', '.join(valid_auth_types)}")
@@ -126,8 +133,8 @@ class A2AValidator:
         """Provide RBAC requirement guidance"""
         rbac_msg = """
         RBAC Requirements for A2A:
-        - If using Project Managed Identity: Must have 'Cognitive Services User' role on sub-agent's project
-        - If using Agent Identity: Agent must be assigned a managed identity with appropriate permissions
+        - Caller identity should have 'Foundry Agent Consumer' role (or higher) on target Foundry project
+        - If using agent/project managed identity, verify role assignment on the target project scope
         - Both agents should be in accessible projects (same subscription recommended)
         - Verify with: az role assignment list --scope /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{account}
         """

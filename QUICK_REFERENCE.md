@@ -11,7 +11,7 @@
 | **Agent ID mismatch** | Server on `agents/subagent-1` but tool references different agent |
 | **Trailing slashes** | `https://account.../endpoint/protocols/a2a/` ❌ (remove the slash) |
 | **Card path wrong** | `agentCard/v2.0` ❌ should be `agentCard/v1.0` ✅ |
-| **Full URL vs relative** | Card path should be relative `agentCard/v1.0` NOT `https://...` |
+| **Card path shape mismatch** | Use `agentCard/v1.0` (SDK path) or `/agentCard/v1.0` (connection metadata) |
 
 ### Quick Fix Checklist:
 ```
@@ -20,7 +20,7 @@
 ☐ Copy exact agent ID from both URLs and verify character-by-character match
 ☐ Remove any trailing slashes from URLs
 ☐ Verify card path is exactly: agentCard/v1.0
-☐ Card path should be relative, not a full URL
+☐ Use relative path for SDK clients; use leading slash for connection metadata
 ```
 
 ---
@@ -31,7 +31,7 @@
 
 | Check | What to do |
 |-------|-----------|
-| **Missing RBAC** | Managed identity doesn't have `Cognitive Services User` role |
+| **Missing RBAC** | Calling identity lacks `Foundry Agent Consumer` (or higher) on target project |
 | **Wrong identity** | Using agent identity when should use project managed identity (or vice versa) |
 | **Token expired** | Authentication token used during consent flow is expired |
 | **Endpoint not deployed** | A2A endpoint on sub-agent isn't fully initialized |
@@ -41,7 +41,7 @@
 ### Quick Fix Checklist:
 ```
 ☐ Run: az role assignment list --scope <sub-agent-project-scope>
-☐ Verify 'Cognitive Services User' role appears in the list
+☐ Verify 'Foundry Agent Consumer' (or higher) appears for the caller identity
 ☐ If using Project Managed Identity, ensure it's enabled on the sub-agent
 ☐ If using Agent Identity, ensure the agent has an identity assigned
 ☐ Test endpoint: curl -H "Authorization: Bearer $token" https://{account}.services.ai.azure.com/api/projects/{project}/agents/{agent}/endpoint/protocols/a2a
@@ -111,7 +111,7 @@ https://ACCOUNT.services.ai.azure.com/api/projects/PROJECT-ID/agents/AGENT-ID/en
 **Fix**:
 1. Add exponential backoff retry logic (3-5 retries with 1s-5s delays)
 2. Ensure token is fresh before making A2A call
-3. Use `--resource` flag with az CLI to get correct scope token
+3. Request token for `https://ai.azure.com`
 
 ### "Always gets 404, never gets to consent"
 **Likely cause**: Endpoint not deployed or network blocked
@@ -135,7 +135,7 @@ https://ACCOUNT.services.ai.azure.com/api/projects/PROJECT-ID/agents/AGENT-ID/en
 ### Bash
 ```bash
 # Get token
-TOKEN=$(az account get-access-token --query accessToken -o tsv)
+TOKEN=$(az account get-access-token --resource https://ai.azure.com --query accessToken -o tsv)
 
 # Test endpoint
 curl -v -H "Authorization: Bearer $TOKEN" \
@@ -147,7 +147,7 @@ curl -v -H "Authorization: Bearer $TOKEN" \
 ### PowerShell
 ```powershell
 # Get token
-$token = (az account get-access-token --query accessToken -o tsv)
+$token = (az account get-access-token --resource https://ai.azure.com --query accessToken -o tsv)
 
 # Test endpoint
 $headers = @{
@@ -163,6 +163,8 @@ Invoke-WebRequest `
 az role assignment list `
   --scope "/subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{account}" `
   --output table
+
+# Look for caller role assignment: Foundry Agent Consumer (or higher)
 ```
 
 ---
