@@ -36,10 +36,11 @@ the checker fix and the successful retained-sandbox run. This is a measured
 configuration, not a platform-wide reliability claim.
 
 ```powershell
-# Paid, explicit opt-in. Replace values; availability and permissions vary.
+# Paid, explicit opt-in. Replace the subscription UUID; availability and permissions vary.
 pwsh -NoProfile -File .\demo.ps1 -Azure `
-  -SubscriptionId SUBSCRIPTION_UUID -Location REGION `
-  -Model MODEL_NAME -ModelVersion MODEL_VERSION -AcceptCost
+  -SubscriptionId SUBSCRIPTION_UUID -Location eastus2 `
+  -Model gpt-4.1-mini -ModelVersion 2025-04-14 `
+  -Sku GlobalStandard -Capacity 10 -AcceptCost
 
 # Re-test the saved sandbox (billable requests; no new sandbox).
 pwsh -NoProfile -File .\demo.ps1 -Azure -AzureAction Probe -AcceptCost
@@ -57,6 +58,8 @@ only 1 request/minute and 1,000 tokens/minute and produced throttling during the
 investigation. Capacity is model-specific: check actual limits, not just available
 quota. Use `-ProvisionOnly` to defer inference, then `-AzureAction Diagnose` for
 individual controls. Resources remain deployed until explicitly cleaned up.
+The selected model is catalogued as Legacy; this is a tested compatibility
+configuration, not a recommendation for new production deployments.
 
 ## Current documented capabilities
 

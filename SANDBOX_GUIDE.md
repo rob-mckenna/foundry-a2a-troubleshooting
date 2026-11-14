@@ -63,14 +63,14 @@ Prerequisites:
 - A supported model/version/SKU in the chosen region and adequate quota/capacity.
 - Tenant policy allowing the required agent identity creation and app-only access.
 
-Create and test:
+Create and test using the recorded configuration (replace the subscription UUID):
 
 ```powershell
 pwsh -NoProfile -File .\demo.ps1 -Azure `
   -SubscriptionId SUBSCRIPTION_UUID `
-  -Location REGION `
-  -Model MODEL_NAME -ModelVersion MODEL_VERSION `
-  -Sku GlobalStandard -Capacity 1 `
+  -Location eastus2 `
+  -Model gpt-4.1-mini -ModelVersion 2025-04-14 `
+  -Sku GlobalStandard -Capacity 10 `
   -AcceptCost
 ```
 
@@ -85,6 +85,8 @@ per minute, compared with only 1 request and 1,000 tokens at capacity 1.
 The latter produced `rate_limit_exceeded` during caller tests. These are observed
 model-specific limits, not a universal conversion or guaranteed minimum. The
 harness keeps its conservative default and never increases capacity automatically.
+The selected model is catalogued as Legacy; this example reproduces a compatibility
+test rather than recommending a model for new production deployments.
 
 ### What the sandbox creates
 
