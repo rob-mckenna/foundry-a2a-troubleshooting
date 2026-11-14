@@ -1,0 +1,146 @@
+{
+  "timestamp_utc": "2026-11-13T13:49:46.650633+00:00",
+  "scope": "LOCAL_HTTP_FIXTURE_ONLY_NOT_AZURE",
+  "identity_context": "Synthetic bearer value; no Entra identity",
+  "protocol": "A2A 1.0 JSON-RPC; non-streaming text",
+  "versions": {
+    "python": "3.11.9",
+    "os": "Windows",
+    "powershell": "7.7.0"
+  },
+  "cases": [
+    {
+      "scenario": "success",
+      "expected_outcome": "PASS",
+      "observed_outcome": "PASS",
+      "expectation_verified": true,
+      "card_http_status": 200,
+      "message_http_status": 200,
+      "category": null,
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "A2A diagnostic OK (fixture-authored)"
+    },
+    {
+      "scenario": "unauthorized",
+      "expected_outcome": "FAIL",
+      "observed_outcome": "FAIL",
+      "expectation_verified": true,
+      "card_http_status": 401,
+      "message_http_status": null,
+      "category": "http-non-2xx",
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "OMITTED"
+    },
+    {
+      "scenario": "forbidden",
+      "expected_outcome": "FAIL",
+      "observed_outcome": "FAIL",
+      "expectation_verified": true,
+      "card_http_status": 403,
+      "message_http_status": null,
+      "category": "http-non-2xx",
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "OMITTED"
+    },
+    {
+      "scenario": "not-found",
+      "expected_outcome": "FAIL",
+      "observed_outcome": "FAIL",
+      "expectation_verified": true,
+      "card_http_status": 404,
+      "message_http_status": null,
+      "category": "http-non-2xx",
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "OMITTED"
+    },
+    {
+      "scenario": "wrong-method",
+      "expected_outcome": "FAIL",
+      "observed_outcome": "FAIL",
+      "expectation_verified": true,
+      "card_http_status": 405,
+      "message_http_status": null,
+      "category": "http-non-2xx",
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "OMITTED"
+    },
+    {
+      "scenario": "throttled",
+      "expected_outcome": "FAIL",
+      "observed_outcome": "FAIL",
+      "expectation_verified": true,
+      "card_http_status": 429,
+      "message_http_status": null,
+      "category": "http-non-2xx",
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "OMITTED"
+    },
+    {
+      "scenario": "server-error",
+      "expected_outcome": "FAIL",
+      "observed_outcome": "FAIL",
+      "expectation_verified": true,
+      "card_http_status": 500,
+      "message_http_status": null,
+      "category": "http-non-2xx",
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "OMITTED"
+    },
+    {
+      "scenario": "redirect",
+      "expected_outcome": "FAIL",
+      "observed_outcome": "FAIL",
+      "expectation_verified": true,
+      "card_http_status": 302,
+      "message_http_status": null,
+      "category": "http-non-2xx",
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "OMITTED"
+    },
+    {
+      "scenario": "malformed-json",
+      "expected_outcome": "FAIL",
+      "observed_outcome": "FAIL",
+      "expectation_verified": true,
+      "card_http_status": 200,
+      "message_http_status": null,
+      "category": "invalid-json",
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "OMITTED"
+    },
+    {
+      "scenario": "rpc-error",
+      "expected_outcome": "FAIL",
+      "observed_outcome": "FAIL",
+      "expectation_verified": true,
+      "card_http_status": 200,
+      "message_http_status": 200,
+      "category": "rpc-error",
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "OMITTED"
+    },
+    {
+      "scenario": "failed-task",
+      "expected_outcome": "FAIL",
+      "observed_outcome": "FAIL",
+      "expectation_verified": true,
+      "card_http_status": 200,
+      "message_http_status": 200,
+      "category": "task-not-completed",
+      "version_header_verified": true,
+      "synthetic_auth_header_verified": true,
+      "reply_text": "OMITTED"
+    }
+  ],
+  "outcome": "ALL_REQUESTED_EXPECTATIONS_VERIFIED"
+}

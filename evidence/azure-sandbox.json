@@ -1,0 +1,94 @@
+{
+  "scope": "LIVE_AZURE_DIRECT_V1_VERIFIED_TWO_AGENT_FAILED",
+  "recorded_date": "2026-11-13",
+  "overall_two_agent_success": false,
+  "versions": {
+    "python": "3.11.9",
+    "powershell": "7.7.0",
+    "azure_cli": "2.92.0",
+    "a2a": "1.0",
+    "agent_api": "v1",
+    "management_api": "2025-06-01",
+    "connection_management_api": "2025-04-01-preview",
+    "sdk": "none"
+  },
+  "deployment": {
+    "cloud": "Azure public",
+    "region": "eastus2",
+    "model": "gpt-4.1-mini",
+    "model_version": "2025-04-14",
+    "model_lifecycle": "Legacy",
+    "model_inference_deprecation": "2027-04-14T00:00:00Z",
+    "sku": "GlobalStandard",
+    "capacity": 1,
+    "target_agent_version": "1",
+    "calling_agent_version": "1"
+  },
+  "identity_context": {
+    "direct_client": "current Azure CLI user; Entra token",
+    "direct_token_audience": "https://ai.azure.com",
+    "calling_agent": "resolved instance_identity.principal_id; app-only",
+    "connection_authentication": "AgenticIdentityToken",
+    "scoped_roles_verified_against_actual_principals": true,
+    "delegated_user_or_consent_flow_tested": false,
+    "identifying_values": "OMITTED"
+  },
+  "attempts": [
+    {
+      "recorded_at": "2026-11-13T21:12:18.338659+00:00",
+      "anonymous_card": {
+        "http_status": 401,
+        "expected_rejection_verified": true
+      },
+      "authenticated_card": {
+        "http_status": 200,
+        "protocol_version": "1.0",
+        "card_valid": true
+      },
+      "direct_message": {
+        "http_status": 200,
+        "jsonrpc_method": "SendMessage",
+        "a2a_version_header": "1.0",
+        "rpc_envelope_and_completed_text_result_valid": true,
+        "request_and_message_ids": "OMITTED",
+        "remote_reply_text": "OMITTED"
+      },
+      "calling_agent_responses_request": {
+        "http_status": 424,
+        "successful_a2a_tool_call_observed": false
+      }
+    },
+    {
+      "recorded_at": "2026-11-13T21:22:57.279898+00:00",
+      "reason": "Deliberate bounded recheck after verifying connection and exact scoped identities; not an automatic inference retry",
+      "anonymous_card_http_status": 401,
+      "authenticated_v1_card_http_status": 200,
+      "valid_direct_v1_message_http_status": 200,
+      "calling_agent_responses_http_status": 424,
+      "successful_a2a_tool_call_observed": false,
+      "remote_error_text": "OMITTED"
+    }
+  ],
+  "read_only_configuration_checks": {
+    "connection_category_and_authentication_match": true,
+    "connection_target_and_audience_match": true,
+    "both_agents_operationally_enabled": true,
+    "bootstrap_principal_foundry_owner_at_dedicated_account": true,
+    "project_identity_foundry_user_at_dedicated_account": true,
+    "caller_instance_identity_agent_consumer_at_target_project": true
+  },
+  "cleanup": {
+    "explicit_user_approval": true,
+    "resource_group_id_and_ownership_tags_verified": true,
+    "resource_group_absence_confirmed": true,
+    "private_recovery_state_retained_as_deleted": true,
+    "entra_directory_object_deletion_verified": false
+  },
+  "limitations": [
+    "HTTP 424 is an observed calling-agent failure, not an established root cause or proof of a product defect.",
+    "No successful live agent-to-agent tool result was observed; tool-result success validation remains offline-tested only.",
+    "The successful direct-user exchange does not prove delegated consent or deployed-agent access.",
+    "One subscription, region, model/version and tenant context do not establish platform-wide availability or reliability.",
+    "The legacy model selection is compatibility evidence, not a production recommendation."
+  ]
+}

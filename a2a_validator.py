@@ -1,274 +1,264 @@
 #!/usr/bin/env python3
-"""
-Foundry A2A Configuration Validator
-Helps troubleshoot Agent-to-Agent communication issues in Microsoft Foundry
-"""
+"""Static checks for Foundry A2A targets, not a live authorization test."""
 
+import argparse
+import json
 import re
 import sys
-from urllib.parse import urlparse
-from typing import Tuple, List, Dict
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+from urllib.parse import urljoin, urlsplit
+
+
+BASE_PATTERN = re.compile(
+    r"/api/projects/([A-Za-z0-9_-]+)/agents/([A-Za-z0-9_-]+)/endpoint/protocols/a2a"
+)
+HOST_PATTERN = re.compile(r"([a-z0-9][a-z0-9-]*)\.services\.ai\.azure\.com")
+AUTH_TYPES = {
+    "AgenticIdentityToken",
+    "ProjectManagedIdentity",
+    "UserEntraToken",
+    "AgentOnBehalfOfUser",
+    "ServicePrincipal",
+}
+EXAMPLE = {
+    "mode": "foundry_connection",
+    "server_url": (
+        "https://example.services.ai.azure.com/api/projects/example-project/"
+        "agents/example-agent/endpoint/protocols/a2a"
+    ),
+    "tool_url": (
+        "https://example.services.ai.azure.com/api/projects/example-project/"
+        "agents/example-agent/endpoint/protocols/a2a"
+    ),
+    "auth_type": "AgenticIdentityToken",
+    "audience": "https://ai.azure.com",
+    "protocol_version": "1.0",
+}
+
 
 class A2AValidator:
-    def __init__(self):
+    def __init__(self) -> None:
         self.errors: List[str] = []
         self.warnings: List[str] = []
         self.info: List[str] = []
-    
-    def validate_url_format(self, url: str, context: str = "") -> bool:
-        """Validate URL format and structure"""
+
+    def validate_url_format(self, url: str, context: str = "URL") -> bool:
         try:
-            parsed = urlparse(url)
-            
-            # Check basic URL structure
-            if not parsed.scheme:
-                self.errors.append(f"{context}: Missing URL scheme (http/https)")
+            parsed = urlsplit(url)
+            if (
+                parsed.scheme != "https"
+                or not parsed.hostname
+                or parsed.username is not None
+                or parsed.password is not None
+                or parsed.port is not None
+                or "?" in url
+                or "#" in url
+                or any(character.isspace() for character in url)
+                or "\\" in url
+            ):
+                self.errors.append(
+                    f"{context}: require HTTPS without credentials, port, whitespace, "
+                    "query, fragment, or backslash."
+                )
                 return False
-            if parsed.scheme not in ['http', 'https']:
-                self.errors.append(f"{context}: Invalid scheme '{parsed.scheme}', must be http or https")
-                return False
-            if not parsed.netloc:
-                self.errors.append(f"{context}: Missing hostname/netloc")
-                return False
-            
-            # Check for trailing slashes (can cause issues)
-            if url.endswith('/') and context.endswith('URL'):
-                self.warnings.append(f"{context}: Contains trailing slash, might cause path matching issues")
-            
-            return True
-        except Exception as e:
-            self.errors.append(f"{context}: Invalid URL format - {str(e)}")
+        except ValueError:
+            self.errors.append(f"{context}: malformed URL.")
             return False
-    
-    def validate_a2a_server_url(self, url: str) -> Tuple[str, str, str, bool]:
-        """
-        Extract and validate A2A endpoint URL components
-        Expected format: https://{account}.services.ai.azure.com/api/projects/{project}/agents/{agent}/endpoint/protocols/a2a
-        """
-        # Regex pattern for A2A endpoint URL
-        pattern = r'https://([^.]+)\.services\.ai\.azure\.com/api/projects/([^/]+)/agents/([^/]+)/endpoint/protocols/a2a'
-        
-        match = re.match(pattern, url.rstrip('/'))
-        
-        if not match:
-            self.errors.append(f"A2A Server URL does not match expected format: {url}")
-            self.info.append("Expected: https://{account}.services.ai.azure.com/api/projects/{project}/agents/{agent}/endpoint/protocols/a2a")
+        return True
+
+    def validate_a2a_server_url(
+        self, url: str
+    ) -> Tuple[Optional[str], Optional[str], Optional[str], bool]:
+        if not self.validate_url_format(url, "A2A target"):
             return None, None, None, False
-        
-        account, project, agent = match.groups()
-        return account, project, agent, True
-    
+        parsed = urlsplit(url)
+        host_match = HOST_PATTERN.fullmatch(parsed.hostname or "")
+        path_match = BASE_PATTERN.fullmatch(parsed.path.rstrip("/"))
+        if not host_match or not path_match or parsed.path.endswith("//"):
+            self.errors.append(
+                "A2A target: expected a public-cloud Foundry A2A base URL "
+                "using project and agent names, with no extra path segments."
+            )
+            return None, None, None, False
+        if parsed.path.endswith("/"):
+            self.warnings.append(
+                "A2A target: trailing slash is normalized for comparison; "
+                "use the documented base URL without it."
+            )
+        return host_match.group(1), path_match.group(1), path_match.group(2), True
+
     def validate_card_path(self, card_path: str) -> bool:
-        """Validate agent card path format"""
-        if not card_path:
-            self.errors.append("Card path is empty")
+        if card_path not in ("agentCard/v1.0", "agentCard/v0.3"):
+            self.errors.append(
+                "Direct SDK card path must be agentCard/v1.0 or agentCard/v0.3, "
+                "relative to the A2A base URL."
+            )
             return False
-        
-        # Card path should be relative (no http/https)
-        if card_path.startswith('http://') or card_path.startswith('https://'):
-            self.warnings.append("Card path appears to be absolute URL, should be relative path like 'agentCard/v1.0'")
-            return True  # Not necessarily an error, just unusual
-        
-        # Common valid patterns
-        valid_patterns = [
-            r'^agentCard/v1\.0$',
-            r'^/agentCard/v1\.0$',
-            r'^agentCard/v0\.3$',
-            r'^/agentCard/v0\.3$',
-            r'^agentCard$',
-            r'^card$',
-        ]
-        
-        if not any(re.match(pattern, card_path) for pattern in valid_patterns):
-            self.warnings.append(f"Card path '{card_path}' doesn't match common patterns (agentCard/v1.0 or /agentCard/v1.0)")
-        
         return True
-    
-    def compare_urls_consistency(self, server_url: str, tool_url: str, card_path: str) -> bool:
-        """Verify that server URL and tool URL reference the same host/project/agent"""
-        # Extract components from server URL
-        server_account, server_project, server_agent, server_valid = self.validate_a2a_server_url(server_url)
-        
-        if not server_valid:
-            return False
-        
-        tool_account, tool_project, tool_agent, tool_valid = self.validate_a2a_server_url(tool_url)
-        if not tool_valid:
-            self.errors.append("Tool URL must match A2A endpoint format and point to the same target")
-            return False
 
-        # Verify tool URL has exactly the same host/project/agent
-        if tool_account != server_account:
-            self.errors.append(f"Tool URL account '{tool_account}' doesn't match server account '{server_account}'")
+    def compare_urls_consistency(
+        self, server_url: str, tool_url: str, card_path: str = ""
+    ) -> bool:
+        server = self.validate_a2a_server_url(server_url)
+        tool = self.validate_a2a_server_url(tool_url)
+        if not server[3] or not tool[3]:
             return False
-        
-        if tool_project != server_project:
-            self.errors.append(f"Tool URL project '{tool_project}' doesn't match server project '{server_project}'")
+        if server[:3] != tool[:3]:
+            self.errors.append("Server and tool URLs must identify the same target agent.")
             return False
-        
-        if tool_agent != server_agent:
-            self.errors.append(f"Tool URL agent '{tool_agent}' doesn't match server agent '{server_agent}'")
-            return False
-        
-        self.info.append(f"✓ URL consistency verified - Account: {server_account}, Project: {server_project}, Agent: {server_agent}")
-        return True
-    
-    def validate_authentication_config(self, auth_type: str, managed_identity_type: str = "") -> bool:
-        """Validate authentication configuration"""
-        valid_auth_types = ["Entra", "Azure AD", "Managed Identity", "Service Principal", "AgenticIdentity"]
-        
-        if auth_type not in valid_auth_types:
-            self.errors.append(f"Invalid auth type '{auth_type}'. Must be one of: {', '.join(valid_auth_types)}")
-            return False
-        
-        if auth_type in ["Entra", "Azure AD"]:
-            if managed_identity_type not in ["Agent Identity", "Project Managed Identity", ""]:
-                self.errors.append(f"Invalid managed identity type '{managed_identity_type}'")
+        if card_path:
+            resolved = urljoin(server_url.rstrip("/") + "/", card_path)
+            allowed = {
+                server_url.rstrip("/") + "/agentCard/v1.0",
+                server_url.rstrip("/") + "/agentCard/v0.3",
+            }
+            if resolved not in allowed:
+                self.errors.append(
+                    "Resolved agent card must target the same host, project, and agent "
+                    "and a supported discovery path."
+                )
                 return False
-            self.info.append(f"✓ Authentication configured as Entra with {managed_identity_type or 'system-assigned identity'}")
-        
+        self.info.append("Configured server and tool values identify the same target.")
         return True
-    
-    def check_rbac_requirements(self, auth_type: str, identity_type: str) -> None:
-        """Provide RBAC requirement guidance"""
-        rbac_msg = """
-        RBAC Requirements for A2A:
-        - Caller identity should have 'Foundry Agent Consumer' role (or higher) on target Foundry project
-        - If using agent/project managed identity, verify role assignment on the target project scope
-        - Both agents should be in accessible projects (same subscription recommended)
-        - Verify with: az role assignment list --scope /subscriptions/{sub}/resourceGroups/{rg}/providers/Microsoft.CognitiveServices/accounts/{account}
-        """
-        self.info.append(rbac_msg)
-    
-    def validate_full_configuration(self, config: Dict) -> bool:
-        """Validate entire A2A configuration"""
-        print("\n" + "="*80)
-        print("FOUNDRY A2A CONFIGURATION VALIDATOR")
-        print("="*80 + "\n")
-        
-        # Extract and validate required fields
-        server_url = config.get('server_url', '').strip()
-        tool_url = config.get('tool_url', '').strip()
-        card_path = config.get('card_path', '').strip()
-        auth_type = config.get('auth_type', '').strip()
-        identity_type = config.get('identity_type', '').strip()
-        
-        print("INPUT CONFIGURATION:")
-        print(f"  Server URL: {server_url or '(missing)'}")
-        print(f"  Tool URL: {tool_url or '(missing)'}")
-        print(f"  Card Path: {card_path or '(missing)'}")
-        print(f"  Auth Type: {auth_type or '(missing)'}")
-        print(f"  Identity Type: {identity_type or '(missing)'}\n")
-        
-        # Validate each component
-        all_valid = True
-        
-        if not server_url:
-            self.errors.append("Server URL is required")
-            all_valid = False
-        else:
-            self.validate_url_format(server_url, "Server URL")
-            self.validate_a2a_server_url(server_url)
-        
-        if not tool_url:
-            self.errors.append("Tool URL is required")
-            all_valid = False
-        else:
-            self.validate_url_format(tool_url, "Tool URL")
-        
-        if not card_path:
-            self.errors.append("Card path is required")
-            all_valid = False
-        else:
-            self.validate_card_path(card_path)
-        
-        if not auth_type:
-            self.errors.append("Authentication type is required")
-            all_valid = False
-        else:
-            self.validate_authentication_config(auth_type, identity_type)
-        
-        # Cross-validation
-        if server_url and tool_url and card_path:
-            self.compare_urls_consistency(server_url, tool_url, card_path)
-            self.check_rbac_requirements(auth_type, identity_type)
-        
-        # Print results
-        print("\n" + "-"*80)
-        print("VALIDATION RESULTS")
-        print("-"*80)
-        
-        if self.errors:
-            print("\n❌ ERRORS (must fix):")
-            for error in self.errors:
-                print(f"   • {error}")
-            all_valid = False
-        else:
-            print("\n✅ No configuration errors found")
-        
-        if self.warnings:
-            print("\n⚠️  WARNINGS (review):")
-            for warning in self.warnings:
-                print(f"   • {warning}")
-        
-        if self.info:
-            print("\nℹ️  INFORMATION:")
-            for info in self.info:
-                print(f"   • {info}")
-        
-        print("\n" + "-"*80)
-        print("NEXT STEPS:")
-        print("-"*80)
-        
-        if all_valid and not self.warnings:
-            print("✅ Configuration looks good! If still experiencing issues:")
-            print("   1. Test endpoint accessibility with: curl -H 'Authorization: Bearer <token>' <server_url>")
-            print("   2. Verify RBAC roles are assigned correctly")
-            print("   3. Check Azure Activity Logs for detailed error information")
-            print("   4. Enable Application Insights tracing on both agents")
-        elif all_valid:
-            print("⚠️  Review warnings above and verify your setup matches expectations")
-        else:
-            print("❌ Please fix the errors above before attempting A2A communication")
-        
-        print("\n" + "="*80 + "\n")
-        return all_valid and not self.errors
 
-def get_user_config() -> Dict:
-    """Interactive configuration input"""
-    print("Enter your A2A configuration details (or press Enter to skip validation):\n")
-    
-    config = {}
-    
-    config['server_url'] = input("Server URL (sub-agent A2A endpoint): ").strip()
-    if not config['server_url']:
-        return None
-    
-    config['tool_url'] = input("Tool URL (as configured in main agent): ").strip()
-    config['card_path'] = input("Card Path (e.g., agentCard/v1.0): ").strip()
-    config['auth_type'] = input("Auth Type (Entra/Managed Identity/Service Principal): ").strip()
-    config['identity_type'] = input("Identity Type (Agent Identity/Project Managed Identity): ").strip()
-    
+    def validate_authentication_config(
+        self, auth_type: str, managed_identity_type: str = ""
+    ) -> bool:
+        if auth_type not in AUTH_TYPES:
+            self.errors.append(
+                "Use an explicit auth_type: " + ", ".join(sorted(AUTH_TYPES)) + ". "
+                "Entra/Azure AD/Managed Identity alone do not identify a caller."
+            )
+            return False
+        expected_identity = {
+            "AgenticIdentityToken": "Agent Identity",
+            "ProjectManagedIdentity": "Project Managed Identity",
+            "ServicePrincipal": "Service Principal",
+            "UserEntraToken": "User",
+            "AgentOnBehalfOfUser": "Agent Identity",
+        }[auth_type]
+        if managed_identity_type and managed_identity_type != expected_identity:
+            self.errors.append("identity_type conflicts with auth_type.")
+            return False
+        if auth_type == "AgentOnBehalfOfUser":
+            self.warnings.append(
+                "AgentOnBehalfOfUser is preview; the source endpoint must use "
+                "AgentBlueprint authorization and an appropriate incoming audience."
+            )
+        return True
+
+    def check_rbac_requirements(self, auth_type: str, identity_type: str) -> None:
+        self.info.append(
+            "RBAC is NOT checked. The actual token principal needs Foundry Agent "
+            "Consumer or equivalent endpoint permission on the target project or agent. "
+            "Service calls and delegated user calls can represent different principals."
+        )
+
+    def validate_full_configuration(self, config: Dict[str, object]) -> bool:
+        self.errors.clear()
+        self.warnings.clear()
+        self.info.clear()
+        fields: Dict[str, str] = {}
+        for key in (
+            "mode", "server_url", "tool_url", "card_path", "auth_type",
+            "identity_type", "audience", "protocol_version",
+        ):
+            value = config.get(key, "")
+            if not isinstance(value, str):
+                self.errors.append(f"{key}: must be a string.")
+                fields[key] = ""
+            else:
+                fields[key] = value.strip()
+
+        mode = fields["mode"]
+        if mode not in ("foundry_connection", "direct_client"):
+            self.errors.append("mode must be foundry_connection or direct_client.")
+        server_url, tool_url = fields["server_url"], fields["tool_url"]
+        if not server_url or not tool_url:
+            self.errors.append("server_url and tool_url are required target values.")
+        else:
+            self.compare_urls_consistency(server_url, tool_url, fields["card_path"])
+
+        version = fields["protocol_version"]
+        if version not in ("1.0", "0.3"):
+            self.errors.append("protocol_version must explicitly select 1.0 or 0.3.")
+        elif version == "0.3":
+            self.warnings.append("A2A 0.3 is preview; use 1.0 for new integrations.")
+
+        card_path = fields["card_path"]
+        if mode == "foundry_connection" and card_path:
+            self.errors.append(
+                "Omit card_path for a Foundry target connection; discovery is automatic."
+            )
+        elif mode == "direct_client":
+            if self.validate_card_path(card_path) and card_path != "agentCard/v" + version:
+                self.errors.append("card_path version conflicts with protocol_version.")
+
+        auth_type = fields["auth_type"]
+        self.validate_authentication_config(auth_type, fields["identity_type"])
+        if mode == "foundry_connection" and auth_type == "ServicePrincipal":
+            self.errors.append(
+                "ServicePrincipal describes a direct client, not a RemoteA2A "
+                "connection authType."
+            )
+        if fields["audience"] != "https://ai.azure.com":
+            self.errors.append("Foundry target audience must be https://ai.azure.com.")
+        self.check_rbac_requirements(auth_type, fields["identity_type"])
+        self.info.append(
+            "Static checks only: no credential, deployment, consent, DNS, RBAC, "
+            "or message exchange was tested. URL checks target Azure public cloud only."
+        )
+        for heading, messages in (
+            ("ERROR", self.errors), ("WARNING", self.warnings), ("INFO", self.info)
+        ):
+            for message in messages:
+                print(f"{heading}: {message}")
+        print("STATIC RESULT: " + ("FAIL" if self.errors else "PASS"))
+        return not self.errors
+
+
+def get_user_config() -> Dict[str, object]:
+    config: Dict[str, object] = {}
+    for field, prompt in (
+        ("mode", "Mode (foundry_connection/direct_client)"),
+        ("server_url", "Target server URL"),
+        ("tool_url", "Target URL configured on caller"),
+        ("card_path", "Card path (omit for foundry_connection)"),
+        ("auth_type", "Auth type (AgenticIdentityToken/ProjectManagedIdentity/"
+         "UserEntraToken/AgentOnBehalfOfUser/ServicePrincipal)"),
+        ("identity_type", "Identity type (optional; must match auth_type)"),
+        ("audience", "Target audience (https://ai.azure.com)"),
+        ("protocol_version", "Protocol version (1.0 recommended)"),
+    ):
+        config[field] = input(prompt + ": ").strip()
     return config
 
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--interactive", action="store_true")
+    source.add_argument("--config", type=Path, help="JSON configuration object")
+    source.add_argument("--example", action="store_true", help="Print a sample, not validation")
+    args = parser.parse_args(argv)
+    if args.example:
+        print(json.dumps(EXAMPLE, indent=2))
+        return 0
+    try:
+        if args.interactive:
+            config = get_user_config()
+        else:
+            with args.config.open(encoding="utf-8") as handle:
+                config = json.load(handle)
+        if not isinstance(config, dict):
+            print("ERROR: configuration must be a JSON object.", file=sys.stderr)
+            return 2
+    except (OSError, UnicodeError, json.JSONDecodeError, EOFError):
+        print("ERROR: unable to read a JSON object or complete input.", file=sys.stderr)
+        return 2
+    return 0 if A2AValidator().validate_full_configuration(config) else 1
+
+
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "--interactive":
-        config = get_user_config()
-        if config:
-            validator = A2AValidator()
-            validator.validate_full_configuration(config)
-    else:
-        print("Foundry A2A Configuration Validator")
-        print("Usage: python a2a_validator.py --interactive")
-        print("\nExample configuration to validate:")
-        
-        example_config = {
-            'server_url': 'https://myaccount.services.ai.azure.com/api/projects/myproject/agents/subagent/endpoint/protocols/a2a',
-            'tool_url': 'https://myaccount.services.ai.azure.com/api/projects/myproject/agents/subagent/endpoint/protocols/a2a',
-            'card_path': 'agentCard/v1.0',
-            'auth_type': 'Entra',
-            'identity_type': 'Project Managed Identity'
-        }
-        
-        validator = A2AValidator()
-        validator.validate_full_configuration(example_config)
+    sys.exit(main())

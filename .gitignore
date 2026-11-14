@@ -1,2 +1,9 @@
-# Internal files - do not share with customers
-SUPPORT_GUIDE.md
+__pycache__/
+.venv/
+
+# Review and sanitize before copying any live evidence into a public deliverable.
+# Ignore rules do not protect files that are already tracked.
+private-evidence/
+
+# Local deployment workflow bookkeeping, not a publication artifact.
+.azure/validate-status.json

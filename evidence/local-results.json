@@ -1,0 +1,267 @@
+{
+  "timestamp_utc": "2026-11-13T13:51:08.361695+00:00",
+  "scope": "LOCAL_HTTP_FIXTURE_ONLY_NOT_AZURE",
+  "identity_context": "Synthetic bearer value; no Entra token or real principal",
+  "azure_verification": "NOT_RUN_NO_TARGET_PROVIDED",
+  "versions": {
+    "python": "3.11.9",
+    "os": "Windows",
+    "powershell": "7.7.0",
+    "a2a_protocol": "1.0",
+    "sdk": "None; standard-library HTTP fixture and PowerShell REST client",
+    "agent_deployment": "Synthetic fixture; no Azure agent deployment",
+    "azure_cli": "Not used by this local fixture"
+  },
+  "cases": [
+    {
+      "case": "task_state_completed",
+      "http_status": 200,
+      "outcome": "PASS",
+      "assertion_status": "PASS",
+      "category": null,
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "task_state_failed",
+      "http_status": 200,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "task-not-completed",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "task_state_canceled",
+      "http_status": 200,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "task-not-completed",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "task_state_rejected",
+      "http_status": 200,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "task-not-completed",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "task_state_input_required",
+      "http_status": 200,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "task-not-completed",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "task_state_auth_required",
+      "http_status": 200,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "task-not-completed",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "task_state_working",
+      "http_status": 200,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "task-not-completed",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "card_http_401",
+      "http_status": 401,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "http_401",
+      "http_status": 401,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "card_http_403",
+      "http_status": 403,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "http_403",
+      "http_status": 403,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "card_http_404",
+      "http_status": 404,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "http_404",
+      "http_status": 404,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "card_http_405",
+      "http_status": 405,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "http_405",
+      "http_status": 405,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "card_http_429",
+      "http_status": 429,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "http_429",
+      "http_status": 429,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "card_http_500",
+      "http_status": 500,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "http_500",
+      "http_status": 500,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "redirect_not_followed",
+      "http_status": 302,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "http-non-2xx",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "jsonrpc_error_at_http_200",
+      "http_status": 200,
+      "outcome": "FAIL",
+      "assertion_status": "PASS",
+      "category": "rpc-error",
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "v1_card_discovery",
+      "http_status": 200,
+      "outcome": "PASS",
+      "assertion_status": "PASS",
+      "category": null,
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    },
+    {
+      "case": "v1_message_exchange",
+      "http_status": 200,
+      "outcome": "PASS",
+      "assertion_status": "PASS",
+      "category": null,
+      "authentication": "Synthetic header present; credential value omitted",
+      "raw_remote_output": "OMITTED"
+    }
+  ],
+  "exchange": {
+    "transport": "JSON-RPC over loopback HTTP",
+    "discovery_path": "/a2a/agentCard/v1.0",
+    "version_header": "A2A-Version: 1.0",
+    "request": {
+      "jsonrpc": "2.0",
+      "method": "SendMessage",
+      "id": "[generated]",
+      "params": {
+        "message": {
+          "messageId": "[generated]",
+          "role": "ROLE_USER",
+          "parts": [
+            {
+              "text": "Reply with exactly: A2A diagnostic OK"
+            }
+          ]
+        },
+        "configuration": {
+          "returnImmediately": false,
+          "acceptedOutputModes": [
+            "text/plain"
+          ]
+        }
+      }
+    },
+    "fixture_response": {
+      "jsonrpc": "2.0",
+      "id": "[matched request]",
+      "result": {
+        "message": {
+          "messageId": "[synthetic]",
+          "role": "ROLE_AGENT",
+          "parts": [
+            {
+              "text": "A2A diagnostic OK"
+            }
+          ]
+        }
+      }
+    },
+    "note": "Reply is fixture-authored public text, not a real agent response."
+  }
+}

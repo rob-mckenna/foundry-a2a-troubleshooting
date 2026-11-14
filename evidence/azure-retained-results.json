@@ -1,0 +1,119 @@
+{
+  "scope": "LIVE_AZURE_DIRECT_AND_TWO_AGENT_VERIFIED",
+  "recorded_at": "2026-11-14T04:13:30.900577+00:00",
+  "success": true,
+  "versions": {
+    "python": "3.11.9",
+    "powershell": "7.7.0",
+    "azure_cli": "2.92.0",
+    "sdk": "none",
+    "agent_api": "v1",
+    "connection_management_api": "2025-04-01-preview",
+    "direct_a2a_protocol": "1.0",
+    "configured_a2a_tool_type": "a2a",
+    "configured_a2a_tool_version": "1.0"
+  },
+  "deployment": {
+    "region": "eastus2",
+    "model": "gpt-4.1-mini",
+    "model_version": "2025-04-14",
+    "model_lifecycle": "Legacy",
+    "sku": "GlobalStandard",
+    "initial_capacity": 1,
+    "verified_capacity": 10,
+    "verified_rate_limits_per_60_seconds": {
+      "requests": 10,
+      "tokens": 10000
+    },
+    "target_agent_version": "1",
+    "calling_agent_version": "3"
+  },
+  "identity_context": {
+    "direct_client": "Azure CLI user; real Entra authentication",
+    "audience": "https://ai.azure.com",
+    "remote_tool_authentication": "AgenticIdentityToken",
+    "remote_caller": "actual calling agent instance_identity.principal_id",
+    "caller_permission": "Foundry Agent Consumer at target project scope",
+    "actual_principal_role_scope_triples_verified": true,
+    "delegation_or_consent_tested": false,
+    "identifying_values": "OMITTED"
+  },
+  "investigation": [
+    {
+      "control": "model-responses",
+      "capacity": 1,
+      "success": true
+    },
+    {
+      "control": "target-responses",
+      "capacity": 1,
+      "success": true
+    },
+    {
+      "control": "caller-with-request-level-tools-disabled",
+      "capacity": 1,
+      "success": false,
+      "http_status": 429,
+      "reviewed_error_code": "rate_limit_exceeded"
+    },
+    {
+      "control": "direct-a2a-separate-attempt",
+      "capacity": 1,
+      "success": true
+    },
+    {
+      "control": "caller-a2a-after-capacity-increase",
+      "capacity": 10,
+      "success": false,
+      "http_status": 424,
+      "reviewed_error_code": "tool_server_error"
+    },
+    {
+      "control": "caller-actual-no-tool-definition",
+      "capacity": 10,
+      "calling_agent_version": "2",
+      "success": true
+    },
+    {
+      "control": "caller-original-a2a-definition-restored",
+      "capacity": 10,
+      "calling_agent_version": "3",
+      "http_status": 200,
+      "response_status": "completed",
+      "observed_item_types": [
+        "a2a_preview_call",
+        "a2a_preview_call_output",
+        "message"
+      ],
+      "old_checker_false_negative": true
+    }
+  ],
+  "final_public_wrapper_probe": {
+    "anonymous_card_http_status": 401,
+    "anonymous_rejection_expected": true,
+    "authenticated_v1_card_http_status": 200,
+    "direct_v1_send_message_http_status": 200,
+    "direct_rpc_envelope_and_text_result_valid": true,
+    "calling_agent_responses_http_status": 200,
+    "response_status": "completed",
+    "completed_remote_calls": 1,
+    "matching_completed_call_outputs": 1,
+    "call_ids_and_names_match": true,
+    "remote_diagnostic_reply_verified": true,
+    "remote_text": "OMITTED",
+    "request_response_and_correlation_identifiers": "OMITTED"
+  },
+  "lifecycle": {
+    "retained_for_troubleshooting": true,
+    "cleanup_performed": false,
+    "cleanup_requires_new_explicit_approval": true
+  },
+  "limitations": [
+    "The checker false-negative on HTTP 200 was fixed; it does not explain earlier HTTP 424 responses.",
+    "Capacity change and caller-version recreation preceded success; their individual effects on earlier transient failures were not conclusively isolated.",
+    "Legacy-named Responses output items do not by themselves identify the A2A wire protocol. The tool is configured as GA a2a version 1.0; the direct HTTP exchange explicitly selects v1.0.",
+    "The platform's internal tool-to-target HTTP headers were not captured.",
+    "No delegated consent, cross-tenant, private-network, production-readiness, or platform-reliability claim is established.",
+    "The selected legacy model is compatibility evidence, not a production model recommendation."
+  ]
+}
